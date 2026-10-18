@@ -1,0 +1,17 @@
+{
+  "name": "pi-mattpocock-sync",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Unofficial Pi integration that mirrors Matt Pocock's official plugin skills unchanged.",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "agent-skills",
+    "mattpocock"
+  ],
+  "pi": {
+    "extensions": [],
+    "skills": []
+  }
+}
