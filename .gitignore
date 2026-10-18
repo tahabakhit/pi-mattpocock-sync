@@ -3,6 +3,8 @@ dist/
 coverage/
 .cache/
 .upstream/
+.pi/delegate/
+.pi/tasks/
 *.tgz
 .env
 .env.*

@@ -23,9 +23,13 @@ This is a Pi integration of the official skill content, not an emulator for ever
 
 ## Planned experience
 
-Install once as a Pi package; subsequent sessions automatically obtain upstream skill updates before skill discovery. Expose the active upstream version, commit, and last update result. Keep the last validated version available offline and support rollback and disabling automatic updates.
+Install once as a Pi package. Load cached skills immediately, then prepare upstream updates in the background for the next session or an explicit Pi `/reload`. Expose the loaded and available upstream versions/commits and the last update result. Keep the last validated revision available offline; rollback also pauses automatic updates.
 
-The selected design is a native Pi extension using awaited resource discovery, initially targeting Pi 1.3.0. Follow the upstream default branch at a single immutable commit per sync, with a configurable five-second startup update budget and last-validated-revision fallback. This design still needs end-to-end verification; ordinary Pi package installation alone does not provide automatic skill updates.
+The selected design is a native Pi extension using resource discovery, initially targeting Pi 1.3.0 on Linux and macOS. Follow the upstream default branch at a single immutable commit per sync, with a configurable five-second automatic update budget. With no cache, attempt a bounded bootstrap; on failure, continue Pi without these skills and report how to retry. Background work must use ordinary public Pi hooks; if that proves impractical, propose a bounded startup check rather than invasive harness changes. None of this is implemented or end-to-end verified yet.
+
+Use one configuration and revision store per Pi agent directory. Keep immutable revisions in v1 so updates cannot remove files still used by running sessions; document disk growth and cleanup with affected sessions stopped.
+
+On a name collision with an already-loaded skill, withhold this package's entire set and report the conflict. Collisions with skills contributed dynamically by other extensions are unsupported in v1: Pi 1.3.0 resolves those one name at a time, and its public extension API cannot enforce package-wide withholding. Exact-set parity is not guaranteed in that configuration. Never overwrite user-authored skill files.
 
 ## Optional subagents
 
@@ -43,11 +47,11 @@ The subagent core does not supply worktree isolation. Upstream workflows such as
 
 ## Start building
 
-Read [the implementation brief](docs/implementation-brief.md) and [AGENTS.md](AGENTS.md).
+Read [the implementation brief](docs/implementation-brief.md), [the implementation plan](docs/implementation-plan.md), and [AGENTS.md](AGENTS.md).
 
 Suggested first agent task:
 
-> Read README.md, AGENTS.md, and docs/implementation-brief.md. Verify the current upstream plugin layout and Pi package/resource lifecycle against primary sources. Propose the smallest design that preserves exact content parity and automatically updates before skill discovery. Identify decisions requiring owner approval, then implement a tested vertical slice.
+> Read README.md, AGENTS.md, docs/implementation-brief.md, docs/implementation-plan.md, and GitHub issue #1. The plan is approved, but implementation requires a separate owner go-ahead. Once authorized, begin with M0's isolated native-Pi feasibility checks, then build the fixture-backed vertical slice. Reverify primary sources and report any scope-changing limitation before proceeding.
 
 ## Development
 

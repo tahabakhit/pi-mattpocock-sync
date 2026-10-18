@@ -33,7 +33,7 @@ Read README.md and docs/implementation-brief.md before implementing. This is a s
 
 Scale tests to the change. Core sync coverage must include manifest selection, exact bytes, supporting references, removals, safe paths, interrupted/offline updates, concurrent updates, and version/commit reporting. Verify resource discovery in a real Pi session before claiming the integration works.
 
-No test runner or build system has been selected yet. Add reproducible commands with the implementation and document what actually ran.
+The selected toolchain is TypeScript, Node 22.19+, npm, and Node's test runner with a TypeScript loader; it is not implemented yet. Follow docs/implementation-plan.md, add reproducible commands with the implementation, and document what actually ran.
 
 ## Release
 

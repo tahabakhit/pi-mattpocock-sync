@@ -2,7 +2,7 @@
 
 ## Approved scope
 
-Build a public Pi package that automatically follows the official Matt Pocock Claude plugin's skill content. The public repository currently contains a scaffold; design decisions are being resolved before runtime implementation.
+Build a public Pi package that automatically follows the official Matt Pocock Claude plugin's skill content. The public repository currently contains a scaffold and an approved implementation plan; runtime implementation awaits a separate owner go-ahead.
 
 “1:1” refers to content and selected resources, not deterministic behavior or identical harness execution.
 
@@ -10,8 +10,8 @@ Build a public Pi package that automatically follows the official Matt Pocock Cl
 
 - Official upstream repository: https://github.com/mattpocock/skills
 - Claude plugin manifest: .claude-plugin/plugin.json
-- Pi package documentation: https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md
-- Pi skill documentation: https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md
+- Pi package documentation: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md
+- Pi skill documentation: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md
 
 Verify current primary sources before implementation. Follow one immutable upstream commit throughout each sync transaction; never combine a manifest from one revision with files from another.
 
@@ -19,13 +19,17 @@ Selected tracking policy: follow the upstream default branch, resolving one immu
 
 ## Selected design direction
 
-- Native Pi extension; initially verify against Pi 1.3.0, without a launcher or older-version fallback.
-- Use the awaited `resources_discover` event to synchronize and return the exact manifest-selected skill paths. Installed Pi source loads those additional resources and rebuilds its system prompt after awaiting the event; this is source-level evidence, not yet a verified end-to-end integration.
-- Configurable five-second startup update budget, including update lock/network waits; keep the last validated revision on failure. If no validated revision exists, continue Pi without this package's skills, issue a clear warning, and offer an explicit retry with a longer timeout.
+- Native Pi extension; initially verify against Pi 1.3.0 on Linux and macOS, without a launcher or older-version fallback. Use TypeScript, Node 22.19+, npm, and Node's test runner with a TypeScript loader.
+- Use the awaited `resources_discover` event to return exact manifest-selected paths from an immutable validated revision. This runs after ordinary skill discovery; Pi then loads the dynamic resources and rebuilds its system prompt. This is source-level evidence, not yet a verified end-to-end integration.
+- Prefer Claude-like activation: immediately load cached skills, prepare updates in the background, and activate on a fresh session or explicit Pi `/reload`. This supersedes the earlier blocking startup-check decision. Loaded paths must not change underneath a running session.
+- Background updating is conditional on ordinary public lifecycle hooks. If it requires private APIs, monkey-patching, a scheduler, or a launcher, propose the simpler bounded startup-check fallback instead.
+- Configurable five-second automatic update budget, including update lock/network waits; keep the last validated revision on failure. When there is no cache, attempt a bounded bootstrap, then continue Pi without this package's skills on failure, issue a clear warning, and offer an explicit retry with a longer timeout.
+- One configuration and revision store per Pi agent directory; no project overrides. Retain immutable revisions in v1, document disk growth and cleanup with affected sessions stopped, and do not build automatic garbage collection.
+- Minimal namespaced status, update/retry, rollback, and auto-update controls. Report loaded versus available revisions. Rollback selects the previous validated revision and pauses automatic updates; active resources change only on reload/new session.
 - Minimal, optional subagent integration through the existing tools of `@gotgenes/pi-subagents` when installed. Document `pi install npm:@gotgenes/pi-subagents`; the package declares its source entrypoint itself.
 - Do not build a worker framework, auto-install subagent packages, or rewrite upstream skills. Detect/report missing workflow capabilities rather than pretend full compatibility.
 - The subagent core supplies spawning, background execution, result retrieval, and steering, not worktree isolation. Do not add its separate worktree companion in v1. Compatibility guidance must stop worktree-dependent workflows and explain the missing prerequisite; never substitute concurrent writes in a shared checkout. This guidance is not a runtime security boundary.
-- On a skill-name collision, preserve user-authored skills and withhold this package's entire skill set with an explicit conflict report. Do not silently rename, overwrite, or register a partial upstream set.
+- On a collision with an already-loaded skill, preserve user-authored skills and withhold this package's entire skill set with an explicit conflict report. Do not rename or overwrite user skills. The owner narrowed this guarantee after source inspection: collisions with other extensions' dynamic skill contributions are unsupported in v1, because Pi buffers those contributions and resolves names individually without a public package-wide veto. Disclose the limitation and do not claim exact-set parity in that configuration.
 
 Primary references: [Pi dynamic-resources example](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/dynamic-resources/index.ts), [subagent documentation](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents#readme), and [subagent package manifest](https://github.com/gotgenes/pi-packages/blob/main/packages/pi-subagents/package.json). These are moving references; reverify exact dependency versions when implementing.
 
@@ -89,11 +93,13 @@ Avoid copying the entire upstream repository into a discoverable skill root: tha
 5. Add and verify automatic updating across successive launches.
 6. Document installation, trust model, limitations, diagnostics, and release procedure.
 
-## Still undecided
+## Implementation gates
 
-- Session/child-session revision consistency, rollback, configuration, and supported operating systems.
-- Reliable collision detection across initial discovery and other extensions' dynamically contributed skills.
-- Runtime and test runner; Pi 1.3.0 is the initial verification target, not yet a tested compatibility claim.
-- npm package-name availability. The public repository is https://github.com/tahabakhit/pi-mattpocock-sync.
+See [the approved implementation plan](implementation-plan.md) for milestones, verification, and the separate implementation go-ahead.
+
+- Prove native discovery, reload removals, supported collision detection, and simple background staging in isolated real Pi tests. Fall back only after reporting any lifecycle limitation.
+- Verify optional subagent resource inheritance without adding orchestration. Return for a scope decision if consistent revisions require invasive integration.
+- Pi 1.3.0 is the initial verification target, not yet a tested compatibility claim.
+- Prepare npm packaging while keeping `private: true`; actual publication and active installation need separate approval. The public repository is https://github.com/tahabakhit/pi-mattpocock-sync. An npm lookup found no package under the proposed name, but name availability is not reserved or guaranteed.
 
 Do not publish, install globally, or create external resources as part of answering these questions without approval.
