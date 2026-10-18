@@ -25,7 +25,21 @@ This is a Pi integration of the official skill content, not an emulator for ever
 
 Install once as a Pi package; subsequent sessions automatically obtain upstream skill updates before skill discovery. Expose the active upstream version, commit, and last update result. Keep the last validated version available offline and support rollback and disabling automatic updates.
 
-The exact installation command and update mechanism remain to be designed and tested. Do not treat a normal Pi package installation as proof of automatic updates.
+The selected design is a native Pi extension using awaited resource discovery, initially targeting Pi 1.3.0. Follow the upstream default branch at a single immutable commit per sync, with a configurable five-second startup update budget and last-validated-revision fallback. This design still needs end-to-end verification; ordinary Pi package installation alone does not provide automatic skill updates.
+
+## Optional subagents
+
+For workflows that need subagents, install the separately maintained [@gotgenes/pi-subagents](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents):
+
+```bash
+pi install npm:@gotgenes/pi-subagents
+```
+
+This installs the subagent extension, **not this unfinished sync package**. The upstream package manifest already loads its source entrypoint; `:src` is not part of its documented install command.
+
+Planned compatibility glue will use its existing `subagent`, `get_subagent_result`, and `steer_subagent` tools when available. Keep this integration minimal: no replacement worker framework, automatic dependency installation, or changes to upstream skill files. Skill synchronization itself must not require subagents; missing workflow capabilities must be reported clearly.
+
+The subagent core does not supply worktree isolation. Upstream workflows such as `implement-spec` require separate worktrees; installing the core alone does not satisfy that requirement. Its upstream documentation describes a separate `@gotgenes/pi-subagents-worktrees` companion, which is not included or configured by this project. Subagent integration and workflow compatibility have not yet been tested.
 
 ## Start building
 
