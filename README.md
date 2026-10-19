@@ -2,7 +2,7 @@
 
 An unofficial Pi package that synchronizes Matt Pocock's official Claude plugin skills without rewriting their content.
 
-**Private, unpublished development candidate.** Core and actual-tarball package/CLI/RPC checks pass locally on Linux. macOS, hosted CI, and visual terminal checks remain unverified; see issue #1 for exact runtime evidence and remaining gates. Nothing is installed into active Pi or published on npm.
+**Private, unpublished development candidate.** Core, package/CLI/RPC, and official standalone Pi checks pass on Linux. Live upstream synchronization and 27/27 selected skills were verified before an owner-authorized local installation. macOS and visual terminal qualification remain incomplete; see issue #1 for exact evidence. Nothing is published on npm.
 
 ## Content contract
 
@@ -35,7 +35,7 @@ Status distinguishes loaded/contributed resources, available/previous revisions,
 
 ## Compatibility and requirements
 
-- Node 22.19+; initially tested against Pi 1.3.0. Linux is verified; macOS is targeted but still pending qualification. Windows and network/synchronized stores are unsupported.
+- Node 22.19+ or the official standalone Pi executable (embedded Bun); initially tested against Pi 1.3.0. The store selects the runtime's native SQLite driver and shares the same database format. Linux is verified; macOS is targeted but still pending qualification. Windows and network/synchronized stores are unsupported.
 - Pi supplies its SDK. The artifact ships TypeScript source and small runtime parser dependencies, not another Pi installation or static upstream skills.
 - Ordinary name collisions withhold this package's entire contribution and preserve user skills. Other extensions' dynamic skill collisions are unsupported; exact-set parity is not guaranteed in that configuration.
 - Subagents are optional. Minimal guidance uses the existing `subagent`, `get_subagent_result`, and `steer_subagent` tools from a separately installed/configured [@gotgenes/pi-subagents](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents). No worker framework or dependency installation is supplied.
@@ -53,11 +53,13 @@ npm ci --ignore-scripts
 npm run typecheck
 npm test
 npm run test:package
+# Optional: qualify the exact standalone Pi runtime's SQLite implementation:
+node test/standalone-run.mjs /absolute/path/to/pi
 ```
 
 Ordinary fixtures are synthetic/offline except explicitly allowlisted loopback servers. The separate package check creates the actual tarball, installs only its production dependencies into a disposable consumer via public npm, checks contents/byte identity, and runs isolated real-Pi package/CLI/RPC checks with a fake provider. It does not touch active Pi or call a real model. See [release checks and gates](docs/release.md).
 
-Development decisions and milestone reports are tracked in the [public repository](https://github.com/tahabakhit/pi-mattpocock-sync) and [issue #1](https://github.com/tahabakhit/pi-mattpocock-sync/issues/1). Local uncommitted implementation is not necessarily present on the remote yet.
+Development decisions and milestone reports are tracked in the [public repository](https://github.com/tahabakhit/pi-mattpocock-sync) and [issue #1](https://github.com/tahabakhit/pi-mattpocock-sync/issues/1). The local installation requires Pi `/reload` or a fresh session to activate.
 
 ## Attribution and license
 

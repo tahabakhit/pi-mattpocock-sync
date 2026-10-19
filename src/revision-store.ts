@@ -1,6 +1,7 @@
 import { lstat, mkdir, readdir, realpath, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
+import type { DatabaseSync } from "node:sqlite";
 import { setTimeout as delay } from "node:timers/promises";
 import { acquireSnapshot, type AcquireSnapshot } from "./acquisition.ts";
 import { LocalSnapshotStore } from "./local-snapshot-store.ts";
@@ -31,12 +32,39 @@ interface StoreOptions {
   /** Fault-injection seam; never read from upstream/configuration. */
   checkpoint?: (phase: SyncPhase) => Promise<void>;
 }
+type StateDatabase = Pick<DatabaseSync, "exec" | "prepare" | "close">;
+const require = createRequire(import.meta.url);
+
+// Standalone Pi embeds Bun: use its native driver, with the same database
+// format and explicit transaction/locking protocol as Node.
+function openDatabase(path: string): StateDatabase {
+  if (process.versions.bun) {
+    const { Database } = require("bun:sqlite") as {
+      Database: new (path: string, options: { create: boolean; strict: boolean }) => {
+        exec: StateDatabase["exec"];
+        query: StateDatabase["prepare"];
+        close(throwOnError: boolean): void;
+      };
+    };
+    const db = new Database(path, { create: true, strict: true });
+    return {
+      exec: sql => db.exec(sql),
+      prepare: sql => db.query(sql),
+      // Finalize cached statements and release the connection now, not at GC.
+      close: () => db.close(true),
+    };
+  }
+  const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
+  return new DatabaseSync(path, { timeout: 0, allowExtension: false });
+}
+
 const STATE_SCHEMA = "CREATE TABLE sync_state (id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL)";
 const initial = (): RevisionState => ({ format: 2, automatic: true, automaticBudgetMs: 5000, selected: null, previous: null, lastCheck: null });
 export const validBudget = (value: number) => Number.isSafeInteger(value) && value >= 1 && value <= 300_000;
 const codes = new Set<FailureCode>(["network", "http", "invalid", "timeout", "cancelled", "state", "license"]);
 const busy = (error: unknown) => {
-  const code = (error as { errcode?: number })?.errcode;
+  const details = error as { errcode?: number; errno?: number } | null;
+  const code = details?.errcode ?? details?.errno;
   return typeof code === "number" && [5, 6].includes(code & 0xff);
 };
 type Budget = ReturnType<typeof operationBudget>;
@@ -94,15 +122,15 @@ export class RevisionStore {
       } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
     }
     budget.check();
-    const db = new DatabaseSync(join(root, "state.sqlite"), { timeout: 0, allowExtension: false });
+    const db = openDatabase(join(root, "state.sqlite"));
     try {
-      db.exec("PRAGMA synchronous=FULL; PRAGMA trusted_schema=OFF;");
+      db.exec("PRAGMA busy_timeout=0; PRAGMA synchronous=FULL; PRAGMA trusted_schema=OFF;");
       const mode = await retry(() => db.prepare("PRAGMA journal_mode").get(), budget);
       if (mode?.journal_mode !== "delete") throw new SyncFailure("state");
       return { db, root };
     } catch (error) { db.close(); throw error; }
   }
-  #state(db: DatabaseSync): RevisionState {
+  #state(db: StateDatabase): RevisionState {
     const objects = db.prepare("SELECT type,name,sql FROM sqlite_master").all();
     const version = db.prepare("PRAGMA user_version").get()?.user_version;
     if (!objects.length && version === 0) return initial();
@@ -136,7 +164,7 @@ export class RevisionStore {
   }
   async #write(options: OperationOptions, mutate: (state: RevisionState, root: string, budget: Budget) => Promise<RevisionState>) {
     const budget = operationBudget(options.budgetMs, options.signal);
-    let db: DatabaseSync | undefined;
+    let db: StateDatabase | undefined;
     let transaction = false;
     try {
       const opened = await this.#open(budget); db = opened.db;
@@ -164,7 +192,7 @@ export class RevisionStore {
 
   async read(options: OperationOptions = {}): Promise<RevisionState> {
     const budget = operationBudget(options.budgetMs, options.signal);
-    let db: DatabaseSync | undefined;
+    let db: StateDatabase | undefined;
     try {
       const opened = await this.#open(budget); db = opened.db;
       for (;;) {
