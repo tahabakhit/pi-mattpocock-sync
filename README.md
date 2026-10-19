@@ -1,64 +1,64 @@
 # pi-mattpocock-sync
 
-An unofficial Pi integration that stays in sync with Matt Pocock's official agent skills.
+An unofficial Pi package that synchronizes Matt Pocock's official Claude plugin skills without rewriting their content.
 
-**Status: scaffold only.** Synchronization, automatic updates, and compatibility glue are not implemented. Nothing is published or installable yet.
+**Private, unpublished development candidate.** Core and actual-tarball package/CLI/RPC checks pass locally on Linux. macOS, hosted CI, and visual terminal checks remain unverified; see issue #1 for exact runtime evidence and remaining gates. Nothing is installed into active Pi or published on npm.
 
-## Goal
+## Content contract
 
-Use the same skill set and unchanged skill files as the official Claude Code plugin, automatically following upstream updates—not a fork, curated subset, or independently maintained port.
+- The official [plugin manifest](https://github.com/mattpocock/skills/blob/main/.claude-plugin/plugin.json) selects the exact skill set—no hard-coded list or third-party port.
+- Each sync resolves one immutable commit from the official upstream default branch.
+- Snapshot files, supporting references, structure, modes, attribution and license notices are preserved. Pi compatibility guidance stays separate.
+- Added/changed/removed skills are synchronized, including an empty manifest.
+- Actual upstream version and commit are reported. Content parity does not promise identical model behavior or every Claude workflow capability.
 
-Upstream: [mattpocock/skills](https://github.com/mattpocock/skills), specifically its [.claude-plugin/plugin.json](https://github.com/mattpocock/skills/blob/main/.claude-plugin/plugin.json).
+## Lifecycle
 
-### What “1:1” means
+Load validated cached skills first; prepare one bounded update in the background. Activate the selected revision on a fresh session or explicit Pi `/reload`, never by changing files underneath a running session. With no cache, attempt bounded bootstrap and continue without these skills if it fails.
 
-- The official plugin manifest determines which skills are exposed.
-- Each selected skill and its supporting files remain byte-for-byte identical at a recorded upstream commit.
-- Additions, changes, and removals are synchronized.
-- Relative references retain their meaning and required supporting content stays available.
-- Pi-specific adapters live separately; they never rewrite upstream skills.
-- Identical model behavior across Claude Code, Codex, and Pi is not a requirement.
+Automatic checks default to a 5000 ms budget. Explicit update/retry defaults to 30000 ms. Rollback selects the previous validated snapshot and pauses automatic updates. Store configuration and retained immutable revisions live in `<Pi agent directory>/mattpocock-sync`, outside scanned skill roots. No daemon, scheduler, project override, or automatic garbage collection is installed.
 
-This is a Pi integration of the official skill content, not an emulator for every Claude plugin feature. If upstream adds executable hooks or other unsupported resources, report the compatibility gap instead of silently claiming full parity.
+Automatic updates change trusted agent instructions. Integrity hashes do not establish author trust. Unknown executable plugin resources are reported, not activated; synchronization never runs upstream package lifecycle scripts.
 
-## Planned experience
+## Controls
 
-Install once as a Pi package. Load cached skills immediately, then prepare upstream updates in the background for the next session or an explicit Pi `/reload`. Expose the loaded and available upstream versions/commits and the last update result. Keep the last validated revision available offline; rollback also pauses automatic updates.
-
-The selected design is a native Pi extension using resource discovery, initially targeting Pi 1.3.0 on Linux and macOS. Follow the upstream default branch at a single immutable commit per sync, with a configurable five-second automatic update budget. With no cache, attempt a bounded bootstrap; on failure, continue Pi without these skills and report how to retry. Background work must use ordinary public Pi hooks; if that proves impractical, propose a bounded startup check rather than invasive harness changes. None of this is implemented or end-to-end verified yet.
-
-Use one configuration and revision store per Pi agent directory. Keep immutable revisions in v1 so updates cannot remove files still used by running sessions; document disk growth and cleanup with affected sessions stopped.
-
-On a name collision with an already-loaded skill, withhold this package's entire set and report the conflict. Collisions with skills contributed dynamically by other extensions are unsupported in v1: Pi 1.3.0 resolves those one name at a time, and its public extension API cannot enforce package-wide withholding. Exact-set parity is not guaranteed in that configuration. Never overwrite user-authored skill files.
-
-## Optional subagents
-
-For workflows that need subagents, install the separately maintained [@gotgenes/pi-subagents](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents):
-
-```bash
-pi install npm:@gotgenes/pi-subagents
+```text
+/mattpocock status
+/mattpocock update [milliseconds]
+/mattpocock retry [milliseconds]
+/mattpocock rollback
+/mattpocock auto on|off
+/mattpocock budget <milliseconds>
 ```
 
-This installs the subagent extension, **not this unfinished sync package**. The upstream package manifest already loads its source entrypoint; `:src` is not part of its documented install command.
+Status distinguishes loaded/contributed resources, available/previous revisions, latest session attempts, and the last committed check. Print/JSON diagnostics go to stderr; interactive/RPC uses notifications. See [operating guidance](docs/usage.md) for activation, recovery, configuration, trust and storage limits.
 
-Planned compatibility glue will use its existing `subagent`, `get_subagent_result`, and `steer_subagent` tools when available. Keep this integration minimal: no replacement worker framework, automatic dependency installation, or changes to upstream skill files. Skill synchronization itself must not require subagents; missing workflow capabilities must be reported clearly.
+## Compatibility and requirements
 
-The subagent core does not supply worktree isolation. Upstream workflows such as `implement-spec` require separate worktrees; installing the core alone does not satisfy that requirement. Its upstream documentation describes a separate `@gotgenes/pi-subagents-worktrees` companion, which is not included or configured by this project. Subagent integration and workflow compatibility have not yet been tested.
+- Node 22.19+; initially tested against Pi 1.3.0. Linux is verified; macOS is targeted but still pending qualification. Windows and network/synchronized stores are unsupported.
+- Pi supplies its SDK. The artifact ships TypeScript source and small runtime parser dependencies, not another Pi installation or static upstream skills.
+- Ordinary name collisions withhold this package's entire contribution and preserve user skills. Other extensions' dynamic skill collisions are unsupported; exact-set parity is not guaranteed in that configuration.
+- Subagents are optional. Minimal guidance uses the existing `subagent`, `get_subagent_result`, and `steer_subagent` tools from a separately installed/configured [@gotgenes/pi-subagents](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents). No worker framework or dependency installation is supplied.
+- Tested in-process children inherit the parent's contribution without another update check. Missing parent captures fail closed; cross-process inheritance is unsupported.
+- Worktree isolation is not supplied or verified. Missing workflow prerequisites must stop that workflow; never substitute parallel writes in a shared checkout. Guidance does not grant permission for commits, pushes, configuration changes, or remote resources.
 
-## Start building
+## Candidate verification—not npm installation
 
-Read [the implementation brief](docs/implementation-brief.md), [the implementation plan](docs/implementation-plan.md), and [AGENTS.md](AGENTS.md).
+There is no published npm package to install. Active installation and publication require separate approval. The package manifest exposes the source entrypoint for isolated candidate testing; `private: true` remains set.
 
-Suggested first agent task:
+From the repository:
 
-> Read README.md, AGENTS.md, docs/implementation-brief.md, docs/implementation-plan.md, and GitHub issue #1. The plan is approved, but implementation requires a separate owner go-ahead. Once authorized, begin with M0's isolated native-Pi feasibility checks, then build the fixture-backed vertical slice. Reverify primary sources and report any scope-changing limitation before proceeding.
+```sh
+npm ci --ignore-scripts
+npm run typecheck
+npm test
+npm run test:package
+```
 
-## Development
+Ordinary fixtures are synthetic/offline except explicitly allowlisted loopback servers. The separate package check creates the actual tarball, installs only its production dependencies into a disposable consumer via public npm, checks contents/byte identity, and runs isolated real-Pi package/CLI/RPC checks with a fake provider. It does not touch active Pi or call a real model. See [release checks and gates](docs/release.md).
 
-This repository currently contains documentation and package metadata only. There are no runtime dependencies, scripts, tests, or shipped skill files yet. The package is marked private to prevent accidental publication; remove that guard only when release readiness has been verified.
+Development decisions and milestone reports are tracked in the [public repository](https://github.com/tahabakhit/pi-mattpocock-sync) and [issue #1](https://github.com/tahabakhit/pi-mattpocock-sync/issues/1). Local uncommitted implementation is not necessarily present on the remote yet.
 
 ## Attribution and license
 
-Independent project; not created by or endorsed by Matt Pocock or the Pi maintainers.
-
-Original integration code is MIT licensed. Upstream skills are owned by their respective authors and must retain their original license and notices when distributed. Verify the license at every imported revision.
+Independent project; not created by or endorsed by Matt Pocock or the Pi maintainers. Original integration code is [MIT licensed](LICENSE). Upstream content belongs to its respective authors and retains original license and attribution notices in each downloaded snapshot. The npm artifact does not bundle upstream content.

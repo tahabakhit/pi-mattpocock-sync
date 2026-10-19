@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: plan approved; awaiting a separate implementation go-ahead. Runtime implementation has not started. Canonical implementation tracker: [GitHub issue #1](https://github.com/tahabakhit/pi-mattpocock-sync/issues/1). Begin with the bounded proof of concept in M0 only after the owner authorizes implementation. The discovery feasibility gate precedes production sync implementation.
+Status: M0–M3 completed on Linux, with final verification on Node 26.11.1 and 22.19.0; M4 local packaging qualification is in progress, with hosted/macOS and visual-terminal gates pending. Canonical implementation tracker: [GitHub issue #1](https://github.com/tahabakhit/pi-mattpocock-sync/issues/1). M4 local qualification passes 132 ordinary tests plus five actual-tarball/package/CLI/RPC checks on both runtimes, type checking, and whitespace checks after a clean dependency install. The M3 disposable public-source smoke also passed. Reports: `docs/m0-feasibility.md`, `docs/m1-snapshot-slice.md`, `docs/m2-transactional-sync.md`, and `docs/m3-lifecycle.md`. These results do not establish an installed or shipped package.
 
 ## Product boundary
 
@@ -26,7 +26,7 @@ Build a small Pi package that follows the official Matt Pocock plugin manifest, 
 
 ## Primary-source findings and limits
 
-- Installed Pi 1.3.0 awaits `resources_discover` handlers after `session_start`, then loads their resource paths and rebuilds its system prompt. The official [dynamic resources example](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/dynamic-resources/index.ts) uses this event. This has been inspected in source, not yet exercised by this package.
+- Installed Pi 1.3.0 awaits `resources_discover` handlers after `session_start`, then loads their resource paths and rebuilds its system prompt. The official [dynamic resources example](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/dynamic-resources/index.ts) uses this event. M0 exercises this through the real Pi SDK and default resource loader, using temporary fixtures and a fake provider.
 - Claude documents [background updates with explicit reload/new-session activation](https://code.claude.com/docs/en/discover-plugins#keep-plugins-updated). Its [loading reference](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) also describes delayed interactive checks and manifest-version-based cache identity. We are not copying that delay, marketplace machinery, or version gating: commit tracking and the five-second budget are explicit project choices.
 - Upstream inspection at commit `49dd158d1076134a641b33efb035946536778336` found a version `1.3.1` manifest selecting 27 skills, an MIT license, and 190 files totaling about 735 KB, including an internal symlink entry. These are research observations, never runtime constants or a maintained skill list.
 - The [subagent package documentation](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-subagents#readme) documents `subagent`, `get_subagent_result`, and `steer_subagent`; worktree isolation is a separate package. Its documented install is `pi install npm:@gotgenes/pi-subagents`, without `:src`.
@@ -95,6 +95,8 @@ The runtime proof must:
 
 ### M0 — Native lifecycle feasibility
 
+**Completed:** 14 fixture tests pass on Linux with Node 26.11.1, Pi 1.3.0, and optional subagents 25.0.1. Type checking passes. Native background staging and a small public-header inheritance bridge are viable; no private host API is needed. See `docs/m0-feasibility.md` for evidence and explicit exclusions.
+
 Create a disposable fixture-only proof of concept using the initial supported Pi version. No live model calls or active-home discovery.
 
 Demonstrate dynamic discovery, explicit invocation, reload removals, collision behavior, cached-first registration, and cancellation of a delayed background update. Verify optional subagent resource inheritance against the intended package version without executing real paid agents. Resolve or explicitly defer each API limitation with the owner.
@@ -103,11 +105,15 @@ Demonstrate dynamic discovery, explicit invocation, reload removals, collision b
 
 ### M1 — Fixture-backed end-to-end slice
 
+**Completed:** the local resolver/importer and native resource adapter pass the combined 53-test suite after a clean install. Four review findings were reproduced by five failing regressions, fixed, and verified alongside additional link/path checks. See `docs/m1-snapshot-slice.md` for evidence and the exact boundary; selection is in-process and single-writer, not a durable production update protocol.
+
 Implement a fixture manifest/snapshot resolver and minimal store-to-Pi path. Supply two synthetic revisions with selected and unselected skills, shared support files, a user-only skill, and an addition/change/removal.
 
 **Exit:** real isolated Pi discovers exactly the declared set, supporting bytes and references remain intact, and reload replaces the set correctly. No hard-coded upstream names, paths, or version constants.
 
 ### M2 — Safe acquisition and transactional updates
+
+**Completed:** bounded acquisition, SQLite-backed selection/writer exclusion, durable publication, rollback, and fault/concurrency tests are implemented. All 101 tests pass after a clean install on Node 26.11.1 and 22.19.0; a disposable public-source smoke test passes. Five review findings are addressed with regressions and stronger recovery tests. See `docs/m2-transactional-sync.md` for exact evidence, the local-filesystem requirement, and remaining limits.
 
 Add official upstream resolution and bounded snapshot acquisition behind testable interfaces. Implement path/link validation, immutable storage, provenance, atomic selection, cross-process locking, interruption recovery, and rollback state.
 
@@ -115,11 +121,15 @@ Add official upstream resolution and bounded snapshot acquisition behind testabl
 
 ### M3 — Session lifecycle, minimal controls, compatibility
 
+**Completed locally:** native lifecycle adapter, namespaced controls, persisted automatic budget, and separate compatibility guidance pass the combined 130-test suite on Linux/Node 26.11.1 and 22.19.0 after a clean dependency install. Real isolated Pi tests verify bootstrap, successive automatic starts, cached-first stability, reload/removals, controls, cancellation, non-interactive diagnostics, optional subagent inheritance, and failure/withholding cases. Type checking, whitespace validation, and a disposable public-source smoke pass. See `docs/m3-lifecycle.md` for exact evidence and limits. No installed package manifest entrypoint is enabled; package loading, macOS, and terminal UX qualification remain M4.
+
 Connect the proven background or approved fallback path. Add namespaced status, explicit update/retry, rollback, and auto-update controls. Report loaded versus available revisions; implement first-run warnings and graceful missing-capability diagnostics. Add only the minimal supported subagent guidance.
 
 **Exit:** successive starts and explicit reload show the agreed activation semantics; active paths remain stable; rollback pauses updates even across concurrent checks. Core operation works with the subagent extension absent. No worktree orchestration or automatic dependency installation is introduced.
 
 ### M4 — Verification, documentation, npm readiness
+
+**Local qualification passed; hosted/terminal gates pending:** the private candidate's explicit source entrypoint and exact artifact allowlist are implemented. On both Linux runtimes, 132 ordinary tests and five actual-tarball/package/CLI/RPC tests pass after clean installation; type checking passes, independent production dependencies are verified, and the same 15-file artifact hash is reproduced. Linux/macOS CI and operating/release documentation are prepared. See `docs/m4-packaging.md`. The owner subsequently approved commit/push and hosted Linux/macOS CI after local verification/review; execution is pending those gates. Visual terminal qualification is not implied by SDK/RPC tests. No active installation or publication is authorized.
 
 Run Linux/macOS CI, type checking, focused unit/integration tests, real isolated Pi discovery/invocation tests, package-content inspection, and production-loader checks. Document install commands only for artifacts actually usable at that stage.
 
@@ -143,4 +153,4 @@ Use isolated temporary homes/agent directories and synthetic fixture repositorie
 
 Use one canonical public GitHub issue for this package's implementation, with links to this plan, acceptance criteria, blockers, and verification evidence. Do not create a separate issue for each internal step unless the owner later asks.
 
-The owner approved this plan and publication of its planning documents, not runtime implementation. Obtain a separate implementation go-ahead before M0 and return for approval if a feasibility finding changes the agreed guarantees. npm publication, active Pi installation, external provider calls, additional companion packages, and upstream Pi changes remain separate approval gates.
+The owner approved this plan and subsequently authorized M0, M1, M2, M3, and M4 local preparation. Return for approval if a finding changes the agreed guarantees. The owner subsequently explicitly approved implementation/workflow commit and push after local checks/review pass, followed by hosted Linux/macOS CI. This does not authorize npm publication or active Pi installation. npm publication, active Pi installation, external provider calls, additional companion packages, and upstream Pi changes remain separate approval gates.

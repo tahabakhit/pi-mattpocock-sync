@@ -2,7 +2,7 @@
 
 ## Approved scope
 
-Build a public Pi package that automatically follows the official Matt Pocock Claude plugin's skill content. The public repository currently contains a scaffold and an approved implementation plan; runtime implementation awaits a separate owner go-ahead.
+Build a public Pi package that automatically follows the official Matt Pocock Claude plugin's skill content. The repository contains an approved implementation plan, completed M0 feasibility tests, and an M1 local manifest/snapshot-to-Pi implementation verified with synthetic fixtures. M2 acquisition and transactional synchronization are verified on Linux, including the minimum Node runtime and a disposable public-source check. M3's source lifecycle adapter, controls, and separate compatibility guidance are verified on both Linux runtimes with 130 passing tests; see the milestone reports for tested behavior and remaining limits.
 
 “1:1” refers to content and selected resources, not deterministic behavior or identical harness execution.
 
@@ -20,7 +20,7 @@ Selected tracking policy: follow the upstream default branch, resolving one immu
 ## Selected design direction
 
 - Native Pi extension; initially verify against Pi 1.3.0 on Linux and macOS, without a launcher or older-version fallback. Use TypeScript, Node 22.19+, npm, and Node's test runner with a TypeScript loader.
-- Use the awaited `resources_discover` event to return exact manifest-selected paths from an immutable validated revision. This runs after ordinary skill discovery; Pi then loads the dynamic resources and rebuilds its system prompt. This is source-level evidence, not yet a verified end-to-end integration.
+- Use the awaited `resources_discover` event to return exact manifest-selected paths from an immutable validated revision. This runs after ordinary skill discovery; Pi then loads the dynamic resources and rebuilds its system prompt. M0 now verifies this lifecycle with real Pi sessions and synthetic fixtures; this does not establish a working upstream integration.
 - Prefer Claude-like activation: immediately load cached skills, prepare updates in the background, and activate on a fresh session or explicit Pi `/reload`. This supersedes the earlier blocking startup-check decision. Loaded paths must not change underneath a running session.
 - Background updating is conditional on ordinary public lifecycle hooks. If it requires private APIs, monkey-patching, a scheduler, or a launcher, propose the simpler bounded startup-check fallback instead.
 - Configurable five-second automatic update budget, including update lock/network waits; keep the last validated revision on failure. When there is no cache, attempt a bounded bootstrap, then continue Pi without this package's skills on failure, issue a clear warning, and offer an explicit retry with a longer timeout.
@@ -95,11 +95,12 @@ Avoid copying the entire upstream repository into a discoverable skill root: tha
 
 ## Implementation gates
 
-See [the approved implementation plan](implementation-plan.md) for milestones, verification, and the separate implementation go-ahead.
+See [the implementation plan](implementation-plan.md), [the M0 report](m0-feasibility.md), and [the M1 report](m1-snapshot-slice.md). M1 implements the local importer and resource adapter; [M2](m2-transactional-sync.md) verifies acquisition, transactional state, and recovery. [M3](m3-lifecycle.md) connects the source lifecycle and controls; its report records current verification. [M4](m4-packaging.md) local artifact/package qualification is in progress. Hosted/macOS, visual-terminal and release gates remain pending.
 
-- Prove native discovery, reload removals, supported collision detection, and simple background staging in isolated real Pi tests. Fall back only after reporting any lifecycle limitation.
-- Verify optional subagent resource inheritance without adding orchestration. Return for a scope decision if consistent revisions require invasive integration.
-- Pi 1.3.0 is the initial verification target, not yet a tested compatibility claim.
+- M0 verifies native discovery, reload removals, supported collision detection, and simple background staging with isolated synthetic fixtures. M0 alone does not verify real network/store behavior; see M2 for that evidence.
+- M0 verifies a minimal public-session-ID bridge for optional subagent inheritance, including the child's actual catalogue and suppression of a duplicate update check. M3 adds the production-source bridge and further parent-state regressions; full upstream workflow equivalence remains outside the guarantee.
+- Pi 1.3.0 and the combined suite are verified on Linux/Node 26.11.1 and 22.19.0. macOS, terminal UX, and a packaged production integration remain unverified.
+- M3 kept `package.json` resource lists empty and tested its source entrypoint directly. M4 enables the private candidate entrypoint and adds actual-tarball/CLI/RPC checks; see its report before claiming package-loader or terminal qualification.
 - Prepare npm packaging while keeping `private: true`; actual publication and active installation need separate approval. The public repository is https://github.com/tahabakhit/pi-mattpocock-sync. An npm lookup found no package under the proposed name, but name availability is not reserved or guaranteed.
 
 Do not publish, install globally, or create external resources as part of answering these questions without approval.

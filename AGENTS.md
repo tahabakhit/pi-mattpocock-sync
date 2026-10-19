@@ -2,7 +2,7 @@
 
 ## Read first
 
-Read README.md and docs/implementation-brief.md before implementing. This is a scaffold, not a working integration. Do not report planned behavior as implemented.
+Read README.md, docs/implementation-brief.md, docs/implementation-plan.md, docs/m0-feasibility.md, docs/m1-snapshot-slice.md, docs/m2-transactional-sync.md, docs/m3-lifecycle.md, and docs/m4-packaging.md before implementing. M0 is a lifecycle experiment; M1 is a local snapshot slice; M2 owns transactional synchronization; M3 wires the source extension. Check each report's verification status. No active Pi installation or published package exists; M4 tests a disposable installed candidate. Do not report planned or unverified behavior as working.
 
 ## Product contract
 
@@ -33,8 +33,8 @@ Read README.md and docs/implementation-brief.md before implementing. This is a s
 
 Scale tests to the change. Core sync coverage must include manifest selection, exact bytes, supporting references, removals, safe paths, interrupted/offline updates, concurrent updates, and version/commit reporting. Verify resource discovery in a real Pi session before claiming the integration works.
 
-The selected toolchain is TypeScript, Node 22.19+, npm, and Node's test runner with a TypeScript loader; it is not implemented yet. Follow docs/implementation-plan.md, add reproducible commands with the implementation, and document what actually ran.
+The toolchain is TypeScript, Node 22.19+, npm, and Node's test runner with a TypeScript loader. `npm test` runs the isolated core/lifecycle suites and M4 metadata/workflow checks; `npm run typecheck` checks source and test types. Follow docs/implementation-plan.md, scale verification as production code is added, and document what actually ran. The M0 fixture extension is not production code. The local importer assumes stable inputs and one writer; RevisionStore owns the SQLite writer protocol and durable selection. Keep its local-filesystem requirement, cancellation/commit boundary, and integrity checks intact. Ordinary tests allow only explicitly registered loopback servers, not public network access; the live smoke test is a separate opt-in command. Keep lifecycle tasks owned and cancelled/awaited on shutdown, captured resource paths immutable, and latest session attempts distinct from committed store checks. Missing/withheld parent contributions must not silently turn into child updates. Assert per-run compatibility guidance in the fake provider's received transcript, not the idle session.systemPrompt getter.
 
 ## Release
 
-package.json is private intentionally. Choose the public repository URL and confirm npm name availability before adding release metadata. Do not claim a package is available until it has actually been published.
+package.json is private intentionally, at development version 0.0.0. The public repository URL is selected and npm returned 404 for the proposed name during M4 preparation; that is not a reservation. Keep the exact file allowlist and wildcard host peer; do not bundle upstream content or another Pi SDK. `npm run test:package` has an explicit public npm dependency-install phase, then isolated offline runtime checks; it must never use active Pi configuration. Recheck naming/access and get separate owner approval before changing release guards or publishing. Do not claim a package is available until it has actually been published.

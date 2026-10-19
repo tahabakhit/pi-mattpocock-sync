@@ -2,6 +2,38 @@
   "name": "pi-mattpocock-sync",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tahabakhit/pi-mattpocock-sync.git"
+  },
+  "homepage": "https://github.com/tahabakhit/pi-mattpocock-sync#readme",
+  "bugs": "https://github.com/tahabakhit/pi-mattpocock-sync/issues",
+  "os": ["linux", "darwin"],
+  "files": [
+    "src/acquisition.ts",
+    "src/compatibility.ts",
+    "src/durable-fs.ts",
+    "src/extension.ts",
+    "src/local-snapshot-store.ts",
+    "src/pi-resources.ts",
+    "src/revision-store.ts",
+    "src/snapshot-policy.ts",
+    "src/snapshot.ts",
+    "src/sync-operation.ts",
+    "README.md",
+    "LICENSE",
+    "docs/usage.md",
+    "docs/release.md"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node test/run.mjs",
+    "test:package": "node test/package-run.mjs",
+    "typecheck": "tsc --noEmit"
+  },
   "description": "Unofficial Pi integration that mirrors Matt Pocock's official plugin skills unchanged.",
   "license": "MIT",
   "keywords": [
@@ -11,7 +43,25 @@
     "mattpocock"
   ],
   "pi": {
-    "extensions": [],
-    "skills": []
+    "extensions": ["./src/extension.ts"],
+    "skills": [],
+    "prompts": [],
+    "themes": []
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.3.0",
+    "@earendil-works/pi-coding-agent": "1.3.0",
+    "@gotgenes/pi-subagents": "^25.0.1",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "marked": "^18.1.1",
+    "tar-stream": "^3.2.2",
+    "yaml": "^2.9.1"
   }
 }
